@@ -3,6 +3,9 @@ import numpy as np
 def donothing():
     pass
 
+def convert_string_to_table(string):
+    return np.array([int(i) for i in string]).reshape(9,9)
+
 class sudoku():
     """
     Sudoku generator and solver to test the effectivity of an algorithm
@@ -75,7 +78,9 @@ class sudoku():
                 if board[i, ii] is not None:
                     possibles_array[i,ii] = set([board[i,ii]])
 
-        while None in board:
+        changing = 3
+        while changing > 0:
+            changing -= 1
             for i in range(9):
                 for ii in range(9):
                     if board[i, ii] is not None:
@@ -98,6 +103,7 @@ class sudoku():
                     # ones, the input is input to the board
                     if len(possibles) == 1:
                         board[i,ii]  = [item for item in possibles][0]
+                        changing = 3
         
         return board
 
@@ -126,3 +132,26 @@ if __name__ == "__main__":
     sud.validate_board(solved_board)
     print(test_sudoku)
     print(solved_board)
+
+    # golden_nugget = np.array((
+    #     (None, None, None,      None, None, None,       None,    2,    8),
+    #     (None, None, None,      None,    0, None,       None, None,    4),
+    #     (None, None,    2,      None, None,    4,          7, None, None),
+
+    #     (None, None,    7,      None, None,    8,       None, None,    5),
+    #     (None,    6, None,      None,    1, None,       None, None, None),
+    #     (   0, None, None,         3, None, None,       None, None, None),
+
+    #     (None, None,    8,      None, None,    7,       None,    4, None),
+    #     (None,    1, None,      None, None, None,          5, None, None),
+    #     (   3, None, None,         6, None, None,       None, None, None)
+    # ))
+    # I wrote this in before writing the conversion function and I want to 
+    # keep it for sentimental reasons, lol
+
+    # http://www.sudokusnake.com/goldennugget.php
+    golden_nugget = convert_string_to_table("000000039000010005003005800008009006070020000100400000009008050020000600400700000")
+
+    solved_nugget = sud.solve(golden_nugget)
+    print(solved_nugget)
+    # sud.validate_board(solved_nugget)
