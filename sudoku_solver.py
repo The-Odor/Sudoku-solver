@@ -4,7 +4,8 @@ def donothing():
     pass
 
 def convert_string_to_table(string):
-    return np.array([int(i) for i in string]).reshape(9,9)
+    return np.array([int(i)-1 if int(i)!=0 else None for i in string]).reshape(9,9)
+
 
 class sudoku():
     """
