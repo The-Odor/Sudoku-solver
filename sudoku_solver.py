@@ -1,8 +1,5 @@
 import numpy as np
 
-full_set = set(range(9))
-none_set = set([None])
-
 def donothing():
     # Visual Studio Code won't let me put stops on empty lines
     # or pass-lines, so I use this function while debugging
@@ -20,7 +17,8 @@ class sudoku():
     elements are set to None values.
     """
     def __init__(self):
-        pass
+        self.full_set = set(range(9))
+        self.none_set = set([None])
 
     
     def create_solved_board(self):
@@ -41,7 +39,6 @@ class sudoku():
 
 
     def _get_cell(self, board, x_in, y_in):
-        cell_index = x_in*9 + y_in
         x = x_in//3*3
         y = y_in//3*3
 
@@ -95,7 +92,7 @@ class sudoku():
         for i in range(9):
             for ii in range(9):
                 if board[i, ii] is None:
-                    possibles_array[i,ii] = full_set
+                    possibles_array[i,ii] = self.full_set
                 else:
                     possibles_array[i,ii] = set([board[i,ii]])
                 
@@ -115,56 +112,155 @@ class sudoku():
 
 
                     # ------- Method 2 ------- #
-                    # Check what numbers an element can have by
-                    # looking at its cell, row, and column, and when that
-                    # possibility space is reduced to 1 possibility,
-                    # the element is solved
+                    # Most naive method (other than an element already solved).
+                    # Elements are compared against other elements in a group,
+                    # and if they are already solved in those groups, they 
+                    # cannot be in this element. When only one possibility is
+                    # available, the element is solved.
                     impossibles = set.union(
                         set(self._get_rest_of_cell(board, i, ii)),
-                        set(board[i,:ii]), set(board[i,ii:]),
-                        set(board[:i,ii]), set(board[i:,ii])
+                        set(board[i,:ii]), set(board[i,ii+1:]),
+                        set(board[:i,ii]), set(board[i+1:,ii])
                     )
 
-                    possibles = full_set - impossibles - none_set
+                    possibles = possibles_array[i,ii] - impossibles - self.none_set
                     possibles_array[i,ii] = possibles
 
                     if len(possibles) == 1:
                         board[i,ii]  = [item for item in possibles][0]
                         changing = 3
-                    elif len(possibles) == 0:
-                        # print("Board found to be invalid, element ({}, {}) has not valid input; exiting".format(i,ii))
-                        changing = 0
-                        break
+                        continue
 
                     # ------- Method 3 ------- #
                     # If a possible number in an element could not be anywhere 
-                    # else, it must be in this element, hence solving it
+                    # else within its groups, it must be in this element, hence
+                    # solving it
                     cel = self._get_rest_of_cell(possibles_array, i, ii)
-                    row = possibles_array[i,:ii], possibles_array[i,ii:]
-                    col = possibles_array[:i,ii], possibles_array[i:,ii]
+                    row = possibles_array[i,:ii], possibles_array[i,ii+1:]
+                    col = possibles_array[:i,ii], possibles_array[i+1:,ii]
 
-                    celrowcol = np.concatenate((cel, *row, *col))
-                    celrowcol = celrowcol[0].union(*celrowcol[0:])
+                    cel = set.union(*cel)
+                    row = np.concatenate((np.array([]), *row))
+                    row = set.union(*row)
+                    col = np.concatenate((np.array([]), *col))
+                    col = set.union(*col)
+
+                    # celrowcol = np.concatenate((cel, row, col))
+                    celrowcol = set.union(cel, row, col)
 
                     # A quick temporary sanity check to make sure that
                     # this leaves only one possible solution
                     checkmultiples = False
 
-                    for iii in possibles:
-                        if iii in celrowcol:
-                            pass
-                        else:
+                    for possibility in possibles:
+                        # if possibility not in celrowcol:
+                        if possibility not in cel or possibility not in row or possibility not in col:
                             if checkmultiples:
-                                raise Exception("Method 3 is is not uniquely determined")
+                                pass
+                                # raise Exception("Method 3 is is not uniquely determined")
                             checkmultiples = True
 
-                            board[i,ii] = iii
-                            possibles_array[i,ii] = set([iii])
+                            board[i,ii] = possibility
+                            possibles_array[i,ii] = set([possibility])
+                            changing = 3
+                            continue
 
-                # Allows for break statements to break out of the entire nested loop
-                else:
-                    continue
-                break
+                    
+                    if changing > 1:
+                        # The following methods are slower and are to be run
+                        # only when required to. I don't know the game well 
+                        # enough to know when to apply these following methods,
+                        # nor whether one should be applied before another,
+                        # so they all come as a group when methods 1-3 fail.
+                        continue
+
+
+                    # I don't trust the following methods yet
+                    # continue
+
+
+                    # ------- Method 4 ------- #
+                    # I believe this method is referred to as "pointing pair".
+                    # the method implies that if a possibility is contained
+                    # within the intersections of two groups (the elements of a
+                    # column contained within a cell for example), but is 
+                    # non-overlap area of one of the groups, it can be removed
+                    # from the other group.
+                    
+                    for iv in range(9):
+                        # Only intersections between cells and rows/columns
+                        # need to be checked, as intersections between rows and
+                        # columns will be caught by method 1.
+                        row = possibles_array[:,iv]
+                        col = possibles_array[iv,:]
+
+                        # Separated out for readability
+                        cel_row = [row[3*v:3*(v+1)] for v in range(3)]
+                        cel_col = [col[3*v:3*(v+1)] for v in range(3)]
+
+                        cel_row = [set.union(*cel) for cel in cel_row]
+                        cel_col = [set.union(*cel) for cel in cel_col]
+
+                        for cel_n in range(3):
+                            for possibility in cel_row[cel_n]:
+                                if possibility not in cel_row[cel_n-1] and possibility not in cel_row[cel_n-2]:
+                                    # possibility can now be safely removed
+                                    # from rest of cell
+                                    x = iv//3*3
+                                    y = cel_n*3
+                                    cel = possibles_array[x:x+3, y:y+3]
+
+
+                                    # is that you _think_ I'd say, bitch
+                                    # I have _no_ fucking clue what's happening
+                                    for x in range(3):
+                                        for y in range(3):
+                                            if y == iv%3:
+                                                continue
+                                            if possibility in cel[x,y]:
+                                                donothing()
+                                            # cel[x,y] -= set([possibility])
+                                            pass
+
+                                    
+
+
+
+
+
+
+
+
+
+
+                        # for v in range(3):
+                        #     for possibility in cel_row[i]:
+                        #         if possibility not in cel_row[i-1] and possibility not in cel_row[i-2]:
+                        #             # possibility can now be removed from 
+                        #             # rest of cell
+                        #             hor_ind = v*3
+                        #             ver_ind = iv//3*3
+                        #             cell = possibles_array[hor_ind:hor_ind+3,ver_ind:ver_ind+3]
+
+                        #             ver_cel_ind = iv%3
+                        #             for vi in range(2):
+                        #                 for vii in range(3):
+                        #                     cell[ver_cel_ind-(vi+1), vii] -= set([possibility])
+
+                        #             changing = 3
+                                    
+
+                                    
+
+                    # ------- Method 5 ------- #
+                    # I believe this method is referred to as "naked pair",
+                    # but I refer to it as "n possibilities within n elements
+                    # within a group". If there are n numbers within as many 
+                    # elements within a group, then those numbers, of that 
+                    # grouping, must be within that section, and can be safely
+                    # removed from the remainder of the group.
+
+
 
             for i in range(9):
                 for ii in range(9):
@@ -172,9 +268,9 @@ class sudoku():
                     row = possibles_array[i,:]
                     col = possibles_array[:,i]
 
-                    cel = cel[0].union(*cel[0:])
-                    row = row[0].union(*row[0:])
-                    col = col[0].union(*col[0:])
+                    cel = set.union(*cel)
+                    row = set.union(*row)
+                    col = set.union(*col)
                     if ii not in cel or ii not in row or ii not in col:
                         print("This board is not solvable")
                         break
@@ -210,7 +306,10 @@ if __name__ == "__main__":
     ))
 
     solved_board = sud.solve(test_sudoku)
-    sud.validate_board(solved_board)
+    if sud.validate_board(solved_board):
+        print("Test sudoku succeeded")
+    else:
+        print("Test sudoku failed")
     # print(test_sudoku)
     # print(solved_board)
 
@@ -234,8 +333,10 @@ if __name__ == "__main__":
     golden_nugget = convert_string_to_table("000000039000010005003005800008009006070020000100400000009008050020000600400700000")
 
     solved_nugget = sud.solve(golden_nugget)
-    # print(solved_nugget)
-    # sud.validate_board(solved_nugget)
+    if sud.validate_board(solved_nugget):
+        print("Golden Nugget solved")
+    else:
+        print("Golden Nugget failed")
     
 
     # Challenges:
