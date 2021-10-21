@@ -84,6 +84,74 @@ class sudoku():
         return True
             
 
+    def pointing_pair(self, board, possibles_board):
+        return board, possibles_board
+        for iv in range(9):
+            # Only intersections between cells and rows/columns
+            # need to be checked, as intersections between rows and
+            # columns will be caught by method 1.
+            row = possibles_array[:,iv]
+            col = possibles_array[iv,:]
+
+            # Separated out for readability
+            cel_row = [row[3*v:3*(v+1)] for v in range(3)]
+            cel_col = [col[3*v:3*(v+1)] for v in range(3)]
+
+            cel_row = [set.union(*cel) for cel in cel_row]
+            cel_col = [set.union(*cel) for cel in cel_col]
+
+            for cel_n in range(3):
+                for possibility in cel_row[cel_n]:
+                    if possibility not in cel_row[cel_n-1] and possibility not in cel_row[cel_n-2]:
+                        # possibility can now be safely removed
+                        # from rest of cell
+                        x = iv//3*3
+                        y = cel_n*3
+                        cel = possibles_array[x:x+3, y:y+3]
+
+
+                        # is that you _think_ I'd say, bitch
+                        # I have _no_ fucking clue what's happening
+                        for x in range(3):
+                            for y in range(3):
+                                if y == iv%3:
+                                    continue
+                                if possibility in cel[x,y]:
+                                    donothing()
+                                # cel[x,y] -= set([possibility])
+                                pass
+
+
+    def _naked_pair_recursion(self, remainder, set_recursive, recursion_layer):
+        if len(remainder) == 0:
+            return len(set_recursive) == recursion_layer 
+
+        own_set = remainder[0]
+        if len(own_set) == 0:
+            return False
+
+        for i in range(1, len(remainder)):
+            if self._naked_pair_recursion(remainder[i:], own_set + set_recursive, recursion_layer+1)
+
+
+
+
+    def naked_pair(self, board, possibles_array):
+        # return board, possibles_array
+            
+        for group_i in range(9):
+            row = possibles_array[:,group_i]
+            col = possibles_array[group_i,:]
+            cel_ind_1 = group_i//3
+            cel_ind_2 = group_i%3
+            cel = possibles_array[cel_ind_1, cel_ind_2]
+
+            for i in range(9):
+                
+
+
+
+
     def solve(self, board_in):
         possibles_array = board_in.copy()
         board = board_in.copy()
@@ -176,7 +244,6 @@ class sudoku():
 
 
                     # I don't trust the following methods yet
-                    # continue
 
 
                     # ------- Method 4 ------- #
@@ -187,69 +254,9 @@ class sudoku():
                     # non-overlap area of one of the groups, it can be removed
                     # from the other group.
                     
-                    for iv in range(9):
-                        # Only intersections between cells and rows/columns
-                        # need to be checked, as intersections between rows and
-                        # columns will be caught by method 1.
-                        row = possibles_array[:,iv]
-                        col = possibles_array[iv,:]
 
-                        # Separated out for readability
-                        cel_row = [row[3*v:3*(v+1)] for v in range(3)]
-                        cel_col = [col[3*v:3*(v+1)] for v in range(3)]
-
-                        cel_row = [set.union(*cel) for cel in cel_row]
-                        cel_col = [set.union(*cel) for cel in cel_col]
-
-                        for cel_n in range(3):
-                            for possibility in cel_row[cel_n]:
-                                if possibility not in cel_row[cel_n-1] and possibility not in cel_row[cel_n-2]:
-                                    # possibility can now be safely removed
-                                    # from rest of cell
-                                    x = iv//3*3
-                                    y = cel_n*3
-                                    cel = possibles_array[x:x+3, y:y+3]
-
-
-                                    # is that you _think_ I'd say, bitch
-                                    # I have _no_ fucking clue what's happening
-                                    for x in range(3):
-                                        for y in range(3):
-                                            if y == iv%3:
-                                                continue
-                                            if possibility in cel[x,y]:
-                                                donothing()
-                                            # cel[x,y] -= set([possibility])
-                                            pass
-
+                    board, possibles_array = self.pointing_pair(board, possibles_array)
                                     
-
-
-
-
-
-
-
-
-
-
-                        # for v in range(3):
-                        #     for possibility in cel_row[i]:
-                        #         if possibility not in cel_row[i-1] and possibility not in cel_row[i-2]:
-                        #             # possibility can now be removed from 
-                        #             # rest of cell
-                        #             hor_ind = v*3
-                        #             ver_ind = iv//3*3
-                        #             cell = possibles_array[hor_ind:hor_ind+3,ver_ind:ver_ind+3]
-
-                        #             ver_cel_ind = iv%3
-                        #             for vi in range(2):
-                        #                 for vii in range(3):
-                        #                     cell[ver_cel_ind-(vi+1), vii] -= set([possibility])
-
-                        #             changing = 3
-                                    
-
                                     
 
                     # ------- Method 5 ------- #
@@ -259,6 +266,9 @@ class sudoku():
                     # elements within a group, then those numbers, of that 
                     # grouping, must be within that section, and can be safely
                     # removed from the remainder of the group.
+
+
+                    board, possibles_array = self.naked_pair(board, possibles_array)
 
 
 
